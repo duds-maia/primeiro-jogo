@@ -38,7 +38,7 @@ def obter_nome_usuario(tela, fonte):
                 elif evento.key == pygame.K_BACKSPACE:
                     nome = nome[:-1]
                 else:
-                    if len(nome) < 15: # Limita o nome a 15 caracteres
+                    if len(nome) < 20: # Limita o nome a 20 caracteres
                         nome += evento.unicode
                         
         tela.fill(COR_FUNDO)
@@ -168,7 +168,7 @@ def main():
     comida = Comida()
 
     pontuacao = 0
-    velocidade_base = 12
+    velocidade_base = 20
     game_over = False
     salvou_ranking = False
     ranking_atual = []

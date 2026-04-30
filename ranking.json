@@ -1,11 +1,27 @@
 [
     {
+        "nome": "hen",
+        "pontuacao": 450
+    },
+    {
         "nome": "maraia",
         "pontuacao": 290
     },
     {
         "nome": "dudu",
-        "pontuacao": 80
+        "pontuacao": 250
+    },
+    {
+        "nome": "estrela",
+        "pontuacao": 240
+    },
+    {
+        "nome": "vava",
+        "pontuacao": 190
+    },
+    {
+        "nome": "bruno",
+        "pontuacao": 180
     },
     {
         "nome": "carlos",
@@ -13,6 +29,14 @@
     },
     {
         "nome": "Lorencio",
+        "pontuacao": 30
+    },
+    {
+        "nome": "ric",
+        "pontuacao": 30
+    },
+    {
+        "nome": "maria eq",
         "pontuacao": 30
     }
 ]
