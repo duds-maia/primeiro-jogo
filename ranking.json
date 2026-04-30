@@ -4,16 +4,24 @@
         "pontuacao": 450
     },
     {
+        "nome": "big",
+        "pontuacao": 410
+    },
+    {
+        "nome": "estrela",
+        "pontuacao": 340
+    },
+    {
+        "nome": "lares",
+        "pontuacao": 320
+    },
+    {
         "nome": "maraia",
         "pontuacao": 290
     },
     {
         "nome": "dudu",
         "pontuacao": 250
-    },
-    {
-        "nome": "estrela",
-        "pontuacao": 240
     },
     {
         "nome": "vava",
@@ -24,12 +32,8 @@
         "pontuacao": 180
     },
     {
-        "nome": "carlos",
-        "pontuacao": 50
-    },
-    {
-        "nome": "Lorencio",
-        "pontuacao": 30
+        "nome": "rafa",
+        "pontuacao": 60
     },
     {
         "nome": "ric",
@@ -38,5 +42,9 @@
     {
         "nome": "maria eq",
         "pontuacao": 30
+    },
+    {
+        "nome": "rafael",
+        "pontuacao": 0
     }
 ]

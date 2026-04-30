@@ -14,6 +14,7 @@ TAMANHO_BLOCO = 20
 
 # Paleta de Cores
 COR_FUNDO = (30, 30, 30)       # Cinza escuro
+COR_GRID = (40, 40, 40)        # Cinza um pouco mais claro para o grid
 COR_COBRA = (50, 205, 50)      # Verde Neon
 COR_BORDA_COBRA = (0, 100, 0)  # Verde escuro
 COR_COMIDA = (255, 69, 0)      # Laranja avermelhado
@@ -23,7 +24,7 @@ COR_GAMEOVER = (220, 20, 60)   # Vermelho Crimson
 DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
 ARQUIVO_RANKING = os.path.join(DIRETORIO_ATUAL, 'ranking.json')
 
-def obter_nome_usuario(tela, fonte):
+def obter_nome_usuario(tela, fonte, fundo_grid):
     nome = ""
     ativo = True
     while ativo:
@@ -41,7 +42,7 @@ def obter_nome_usuario(tela, fonte):
                     if len(nome) < 20: # Limita o nome a 20 caracteres
                         nome += evento.unicode
                         
-        tela.fill(COR_FUNDO)
+        tela.blit(fundo_grid, (0, 0))
         texto_titulo = fonte.render("Digite seu nome e aperte ENTER:", True, COR_TEXTO)
         texto_nome = fonte.render(nome + "_", True, COR_COMIDA)
         
@@ -161,14 +162,22 @@ def main():
     fonte_gameover = pygame.font.SysFont('consolas', 48, bold=True)
     fonte_ranking = pygame.font.SysFont('consolas', 20)
 
+    # Criar a superfície do fundo quadriculado
+    fundo_grid = pygame.Surface((LARGURA, ALTURA))
+    fundo_grid.fill(COR_FUNDO)
+    for y in range(0, ALTURA, TAMANHO_BLOCO):
+        for x in range(0, LARGURA, TAMANHO_BLOCO):
+            if ((x // TAMANHO_BLOCO) + (y // TAMANHO_BLOCO)) % 2 == 0:
+                pygame.draw.rect(fundo_grid, COR_GRID, (x, y, TAMANHO_BLOCO, TAMANHO_BLOCO))
+
     # Pede o nome do jogador antes do jogo começar
-    nome_jogador = obter_nome_usuario(tela, fonte_hud)
+    nome_jogador = obter_nome_usuario(tela, fonte_hud, fundo_grid)
 
     cobra = Cobra()
-    comida = Comida()
+    comidas = [Comida()]
 
     pontuacao = 0
-    velocidade_base = 20
+    velocidade_base = 12
     game_over = False
     salvou_ranking = False
     ranking_atual = []
@@ -186,15 +195,15 @@ def main():
                     # Aperte 'Espaço' para reiniciar
                     if evento.key == pygame.K_SPACE:
                         cobra.resetar()
-                        comida.posicao_aleatoria()
+                        comidas = [Comida()]
                         pontuacao = 0
                         game_over = False
                         salvou_ranking = False
                     # Aperte 'N' para reiniciar com um novo usuário
                     elif evento.key == pygame.K_n:
-                        nome_jogador = obter_nome_usuario(tela, fonte_hud)
+                        nome_jogador = obter_nome_usuario(tela, fonte_hud, fundo_grid)
                         cobra.resetar()
-                        comida.posicao_aleatoria()
+                        comidas = [Comida()]
                         pontuacao = 0
                         game_over = False
                         salvou_ranking = False
@@ -215,20 +224,41 @@ def main():
                 game_over = True
 
             # Checa se a cobra alcançou a comida
-            if cobra.get_cabeca() == comida.posicao:
+            comida_comida = None
+            for comida in comidas:
+                if cobra.get_cabeca() == comida.posicao:
+                    comida_comida = comida
+                    break
+
+            if comida_comida:
                 cobra.tamanho += 1
                 pontuacao += 10
                 
-                # Impede que a comida nasça dentro do corpo da cobra
-                comida.posicao_aleatoria()
-                while comida.posicao in cobra.posicoes:
-                    comida.posicao_aleatoria()
+                comidas.remove(comida_comida)
+                
+                # Só gera novas comidas quando TODAS na tela tiverem sido comidas
+                if len(comidas) == 0:
+                    if pontuacao >= 150:
+                        qtd_esperada_comidas = 3
+                    elif pontuacao >= 50:
+                        qtd_esperada_comidas = 2
+                    else:
+                        qtd_esperada_comidas = 1
+                    
+                    # Impede que as comidas nasçam dentro do corpo da cobra ou sobre outras comidas
+                    while len(comidas) < qtd_esperada_comidas:
+                        nova_comida = Comida()
+                        posicoes_ocupadas = cobra.posicoes + [c.posicao for c in comidas]
+                        while nova_comida.posicao in posicoes_ocupadas:
+                            nova_comida.posicao_aleatoria()
+                        comidas.append(nova_comida)
 
         # Renderização (Desenhar na tela)
-        tela.fill(COR_FUNDO)
+        tela.blit(fundo_grid, (0, 0))
         
         cobra.desenhar(tela)
-        comida.desenhar(tela)
+        for comida in comidas:
+            comida.desenhar(tela)
 
         # Desenhar HUD de Pontuação
         texto_pontos = fonte_hud.render(f'Pontuação: {pontuacao}', True, COR_TEXTO)
