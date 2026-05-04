@@ -12,7 +12,7 @@ LARGURA = 800
 ALTURA = 600
 TAMANHO_BLOCO = 20
 
-# Paleta de Cores
+# Paleta de Cores (RGB)
 COR_FUNDO = (30, 30, 30)       # Cinza escuro
 COR_GRID = (40, 40, 40)        # Cinza um pouco mais claro para o grid
 COR_COBRA = (50, 205, 50)      # Verde Neon
@@ -25,6 +25,11 @@ DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
 ARQUIVO_RANKING = os.path.join(DIRETORIO_ATUAL, 'ranking.json')
 
 def obter_nome_usuario(tela, fonte, fundo_grid):
+    """
+    Exibe uma tela inicial solicitando o nome do jogador.
+    Captura os eventos do teclado para formar a string do nome.
+    Retorna o nome formatado (sem espaços extras nas pontas) quando o jogador aperta ENTER.
+    """
     nome = ""
     ativo = True
     while ativo:
@@ -33,15 +38,16 @@ def obter_nome_usuario(tela, fonte, fundo_grid):
                 pygame.quit()
                 sys.exit()
             elif evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_RETURN:
-                    if nome.strip() != "":
+                if evento.key == pygame.K_RETURN:  # Confirma o nome ao pressionar ENTER
+                    if nome.strip():               # Verifica se o nome não está vazio
                         ativo = False
-                elif evento.key == pygame.K_BACKSPACE:
+                elif evento.key == pygame.K_BACKSPACE: # Apaga o último caractere
                     nome = nome[:-1]
                 else:
                     if len(nome) < 20: # Limita o nome a 20 caracteres
                         nome += evento.unicode
                         
+        # Renderização da tela de inserção de nome
         tela.blit(fundo_grid, (0, 0))
         texto_titulo = fonte.render("Digite seu nome e aperte ENTER:", True, COR_TEXTO)
         texto_nome = fonte.render(nome + "_", True, COR_COMIDA)
@@ -53,7 +59,13 @@ def obter_nome_usuario(tela, fonte, fundo_grid):
     return nome.strip()
 
 def gerenciar_ranking(nome, pontuacao):
+    """
+    Lê o arquivo de ranking JSON, atualiza a pontuação do jogador caso seja seu recorde pessoal,
+    reordena a lista com base nas pontuações mais altas e salva novamente no arquivo.
+    Retorna a lista completa de ranking e a colocação alcançada pelo jogador atual.
+    """
     ranking = []
+    # Carrega os dados antigos do ranking, se o arquivo existir
     if os.path.exists(ARQUIVO_RANKING):
         with open(ARQUIVO_RANKING, 'r', encoding='utf-8') as f:
             try:
@@ -62,15 +74,18 @@ def gerenciar_ranking(nome, pontuacao):
                 ranking = []
                 
     jogador_existente = None
+    # Verifica se o jogador já está registrado no ranking
     for registro in ranking:
         if registro["nome"] == nome:
             jogador_existente = registro
             break
             
     if jogador_existente:
+        # Se o jogador já existe, atualiza a pontuação apenas se a nova for maior (recorde)
         if pontuacao > jogador_existente["pontuacao"]:
             jogador_existente["pontuacao"] = pontuacao
     else:
+        # Se for um jogador novo, adiciona à lista
         jogador_existente = {"nome": nome, "pontuacao": pontuacao}
         ranking.append(jogador_existente)
         
@@ -80,6 +95,7 @@ def gerenciar_ranking(nome, pontuacao):
     # Pega o índice do registro e soma 1 para obter a colocação
     colocacao = ranking.index(jogador_existente) + 1
     
+    # Salva os dados atualizados no arquivo JSON
     with open(ARQUIVO_RANKING, 'w', encoding='utf-8') as f:
         json.dump(ranking, f, ensure_ascii=False, indent=4)
         
@@ -88,29 +104,36 @@ def gerenciar_ranking(nome, pontuacao):
 # CLASSES
 
 class Cobra:
+    """Classe que representa a cobra, suas posições no grid, direção atual e lógica de movimento."""
     def __init__(self):
         self.resetar()
         self.cor = COR_COBRA
 
     def get_cabeca(self):
+        """Retorna a posição (x, y) atual da cabeça da cobra."""
         return self.posicoes[0]
 
     def virar(self, direcao_x, direcao_y):
+        """Altera a direção da cobra, bloqueando movimentos que fariam ela dar ré nela mesma."""
         # Impede que a cobra dê ré nela mesma
         if self.tamanho > 1 and (direcao_x * -1, direcao_y * -1) == self.direcao:
             return
         self.direcao = (direcao_x, direcao_y)
 
     def mover(self):
+        """
+        Calcula o próximo passo da cobra. Verifica colisões com bordas e o próprio corpo.
+        Retorna True se o movimento ocorreu com sucesso ou False se bateu e causou Game Over.
+        """
         atual = self.get_cabeca()
         x, y = self.direcao
         novo = (atual[0] + (x * TAMANHO_BLOCO), atual[1] + (y * TAMANHO_BLOCO))
         
-        # Lógica de Colisão com as Paredes
+        # Lógica de Colisão com as Paredes da tela
         if novo[0] < 0 or novo[0] >= LARGURA or novo[1] < 0 or novo[1] >= ALTURA:
             return False # Retorna Falso indicando Game Over
 
-        # Lógica de Colisão com o Próprio Corpo
+        # Lógica de Colisão com o Próprio Corpo (a partir do terceiro segmento)
         if len(self.posicoes) > 2 and novo in self.posicoes[2:]:
             return False # Retorna Falso indicando Game Over
 
@@ -124,28 +147,33 @@ class Cobra:
         return True
 
     def resetar(self):
+        """Volta a cobra para o estado inicial (tamanho 1, no centro, subindo)."""
         self.tamanho = 1
         self.posicoes = [(LARGURA // 2, ALTURA // 2)]
         self.direcao = (0, -1) # Começa subindo
 
     def desenhar(self, superficie):
+        """Desenha cada quadrado do corpo da cobra na tela, com um contorno leve para destacar os blocos."""
         for p in self.posicoes:
             retangulo = pygame.Rect((p[0], p[1]), (TAMANHO_BLOCO, TAMANHO_BLOCO))
             pygame.draw.rect(superficie, self.cor, retangulo)
             pygame.draw.rect(superficie, COR_BORDA_COBRA, retangulo, 1)
 
 class Comida:
+    """Classe que representa as 'maçãs' ou itens consumíveis para a cobra crescer."""
     def __init__(self):
         self.cor = COR_COMIDA
         self.posicao_aleatoria()
 
     def posicao_aleatoria(self):
+        """Muda a posição da comida para um local aleatório da tela, alinhado ao tamanho do bloco."""
         # Garante que a comida spawne alinhada com o grid da cobra
         x = random.randint(0, (LARGURA - TAMANHO_BLOCO) // TAMANHO_BLOCO) * TAMANHO_BLOCO
         y = random.randint(0, (ALTURA - TAMANHO_BLOCO) // TAMANHO_BLOCO) * TAMANHO_BLOCO
         self.posicao = (x, y)
 
     def desenhar(self, superficie):
+        """Desenha o retângulo que representa a comida na tela."""
         retangulo = pygame.Rect((self.posicao[0], self.posicao[1]), (TAMANHO_BLOCO, TAMANHO_BLOCO))
         pygame.draw.rect(superficie, self.cor, retangulo)
 
@@ -153,6 +181,10 @@ class Comida:
 # LOOP PRINCIPAL DO JOGO
 
 def main():
+    """
+    Função principal onde ocorre a inicialização do Pygame, definição dos recursos visuais,
+    e o Game Loop (Captura de eventos, Atualização de lógica e Renderização de gráficos).
+    """
     tela = pygame.display.set_mode((LARGURA, ALTURA))
     pygame.display.set_caption('Projeto: Snake Game Orientado a Objetos')
     relogio = pygame.time.Clock()
@@ -162,7 +194,7 @@ def main():
     fonte_gameover = pygame.font.SysFont('consolas', 48, bold=True)
     fonte_ranking = pygame.font.SysFont('consolas', 20)
 
-    # Criar a superfície do fundo quadriculado
+    # Pré-renderiza a superfície do fundo quadriculado (ganho de performance em vez de desenhar a cada frame)
     fundo_grid = pygame.Surface((LARGURA, ALTURA))
     fundo_grid.fill(COR_FUNDO)
     for y in range(0, ALTURA, TAMANHO_BLOCO):
@@ -173,6 +205,7 @@ def main():
     # Pede o nome do jogador antes do jogo começar
     nome_jogador = obter_nome_usuario(tela, fonte_hud, fundo_grid)
 
+    # Inicialização das entidades do jogo
     cobra = Cobra()
     comidas = [Comida()]
 
@@ -183,8 +216,9 @@ def main():
     ranking_atual = []
     colocacao_atual = 0
 
+    # Início do Loop Principal do Pygame
     while True:
-        # Captura de Eventos do Teclado e Sistema
+        # --- 1. CAPTURA DE EVENTOS ---
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 pygame.quit()
@@ -192,15 +226,16 @@ def main():
                 
             elif evento.type == pygame.KEYDOWN:
                 if game_over:
-                    # Aperte 'Espaço' para reiniciar
+                    # Eventos exclusivos da tela de Game Over
                     if evento.key == pygame.K_SPACE:
+                        # Reiniciar partida com o mesmo jogador
                         cobra.resetar()
                         comidas = [Comida()]
                         pontuacao = 0
                         game_over = False
                         salvou_ranking = False
-                    # Aperte 'N' para reiniciar com um novo usuário
                     elif evento.key == pygame.K_n:
+                        # Cadastrar um novo usuário e iniciar
                         nome_jogador = obter_nome_usuario(tela, fonte_hud, fundo_grid)
                         cobra.resetar()
                         comidas = [Comida()]
@@ -208,6 +243,7 @@ def main():
                         game_over = False
                         salvou_ranking = False
                 else:
+                    # Controles de direção da Cobra no teclado (Setas ou WASD)
                     if evento.key == pygame.K_UP or evento.key == pygame.K_w:
                         cobra.virar(0, -1)
                     elif evento.key == pygame.K_DOWN or evento.key == pygame.K_s:
@@ -217,13 +253,13 @@ def main():
                     elif evento.key == pygame.K_RIGHT or evento.key == pygame.K_d:
                         cobra.virar(1, 0)
 
-        # Atualização da Lógica
+        # --- 2. ATUALIZAÇÃO DA LÓGICA DO JOGO ---
         if not game_over:
             # Se a função mover retornar False, ocorreu uma colisão
             if not cobra.mover():
                 game_over = True
 
-            # Checa se a cobra alcançou a comida
+            # Checa se a cobra alcançou alguma das comidas geradas na tela
             comida_comida = None
             for comida in comidas:
                 if cobra.get_cabeca() == comida.posicao:
@@ -231,13 +267,15 @@ def main():
                     break
 
             if comida_comida:
+                # Processa os benefícios de ter se alimentado
                 cobra.tamanho += 1
                 pontuacao += 10
                 
                 comidas.remove(comida_comida)
                 
                 # Só gera novas comidas quando TODAS na tela tiverem sido comidas
-                if len(comidas) == 0:
+                if not comidas:
+                    # Escala a dificuldade com o avanço da pontuação gerando múltiplas comidas
                     if pontuacao >= 150:
                         qtd_esperada_comidas = 3
                     elif pontuacao >= 50:
@@ -245,32 +283,39 @@ def main():
                     else:
                         qtd_esperada_comidas = 1
                     
-                    # Impede que as comidas nasçam dentro do corpo da cobra ou sobre outras comidas
+                    # Loop que garante a criação da quantidade certa de comidas válidas
                     while len(comidas) < qtd_esperada_comidas:
                         nova_comida = Comida()
+                        # Posições onde não é possível gerar comida (no corpo da cobra ou em cima de outra comida)
                         posicoes_ocupadas = cobra.posicoes + [c.posicao for c in comidas]
+                        
+                        # Rola posições aleatórias até achar um espaço vazio
                         while nova_comida.posicao in posicoes_ocupadas:
                             nova_comida.posicao_aleatoria()
+                            
                         comidas.append(nova_comida)
 
-        # Renderização (Desenhar na tela)
+        # --- 3. RENDERIZAÇÃO (Desenhar na Tela) ---
+        # Sobrepõe o fundo (limpando o frame anterior)
         tela.blit(fundo_grid, (0, 0))
         
+        # Desenha as entidades
         cobra.desenhar(tela)
         for comida in comidas:
             comida.desenhar(tela)
 
-        # Desenhar HUD de Pontuação
+        # Desenha o HUD mostrando a pontuação
         texto_pontos = fonte_hud.render(f'Pontuação: {pontuacao}', True, COR_TEXTO)
         tela.blit(texto_pontos, (15, 15))
 
-        # Desenhar Tela de Game Over
+        # Lógica exclusiva de desenho para a Tela de Game Over
         if game_over:
             # Salva no arquivo apenas na primeira vez que a tela de game over é renderizada
             if not salvou_ranking:
                 ranking_atual, colocacao_atual = gerenciar_ranking(nome_jogador, pontuacao)
                 salvou_ranking = True
 
+            # Preparação de textos indicando o final da partida
             texto_go = fonte_gameover.render('GAME OVER', True, COR_GAMEOVER)
             texto_restart_mesmo = fonte_hud.render('ESPAÇO - Jogar novamente', True, COR_TEXTO)
             texto_restart_novo = fonte_hud.render('N - Novo jogador', True, COR_TEXTO)
@@ -292,9 +337,11 @@ def main():
             texto_colocacao = fonte_hud.render(f'Sua colocação atual: {colocacao_atual}º lugar!', True, COR_COBRA)
             tela.blit(texto_colocacao, (LARGURA//2 - texto_colocacao.get_width()//2, y_offset + 10))
 
+        # Aplica tudo que foi desenhado no frame atual
         pygame.display.update()
 
-        # Controle de FPS (Dificuldade aumenta 1 "tick" a cada 50 pontos)
+        # --- 4. CONTROLE DE TEMPO (FPS) ---
+        # O jogo vai ficando mais rápido conforme os pontos sobem (1 de velocidade extra a cada 50 pontos)
         velocidade_atual = velocidade_base + (pontuacao // 50)
         relogio.tick(velocidade_atual)
 
