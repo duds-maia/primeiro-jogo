@@ -1,2 +1,2 @@
-# primeiro jogo publicado no github
+# Jogo da cobrinha em python
 jogo da cobrinha
